@@ -97,6 +97,24 @@ app.get('/api/categories/:slug/posts', async (req, res) => {
   }
 });
 
+// Create Category (Protected)
+app.post('/api/categories', authMiddleware, async (req: AuthRequest, res) => {
+  try {
+    const { name, slug, description } = req.body;
+    
+    const existingCategory = await Category.findOne({ slug });
+    if (existingCategory) return res.status(400).json({ error: 'Category slug already exists' });
+
+    const newCategory = new Category({ name, slug, description });
+    await newCategory.save();
+    
+    res.status(201).json(newCategory);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
 // Auth Routes
 app.post('/api/auth/register', async (req, res) => {
   try {
