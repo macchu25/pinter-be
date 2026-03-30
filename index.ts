@@ -33,14 +33,22 @@ if (!fs.existsSync(path.join(__dirname, 'uploads'))) {
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Multer Config
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, 'uploads/');
-  },
-  filename: (req, file, cb) => {
-    cb(null, Date.now() + path.extname(file.originalname));
-  }
+import { v2 as cloudinary } from 'cloudinary';
+import { CloudinaryStorage } from 'multer-storage-cloudinary';
+
+// Cloudinary Config (Bạn hãy lấy Cloud Name, API Key, API Secret từ Dashboard Cloudinary của bạn)
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME || 'pinter-cloud',
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'pinter_uploads',
+    allowed_formats: ['jpg', 'png', 'jpeg', 'webp', 'gif'],
+  } as any,
 });
 
 const upload = multer({ storage });
@@ -149,10 +157,8 @@ app.post('/api/auth/social-login', async (req, res) => {
 // Upload Route
 app.post('/api/upload', upload.single('image'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
-  const host = req.get('host');
-  const protocol = req.protocol === 'http' && host?.includes('localhost') ? 'http' : 'https';
-  const imageUrl = `${protocol}://${host}/uploads/${req.file.filename}`;
-  res.json({ imageUrl });
+  // multer-storage-cloudinary trả về link ảnh tại req.file.path
+  res.json({ imageUrl: (req.file as any).path });
 });
 
 // Post creation (Protected)
