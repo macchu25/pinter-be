@@ -149,7 +149,9 @@ app.post('/api/auth/social-login', async (req, res) => {
 // Upload Route
 app.post('/api/upload', upload.single('image'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
-  const imageUrl = `http://localhost:${PORT}/uploads/${req.file.filename}`;
+  const host = req.get('host');
+  const protocol = req.protocol === 'http' && host?.includes('localhost') ? 'http' : 'https';
+  const imageUrl = `${protocol}://${host}/uploads/${req.file.filename}`;
   res.json({ imageUrl });
 });
 
@@ -188,6 +190,10 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
   res.status(500).json({ error: err.message || 'Internal Server Error' });
 });
 
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
-});
+if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running on http://localhost:${PORT}`);
+  });
+}
+
+export default app;
